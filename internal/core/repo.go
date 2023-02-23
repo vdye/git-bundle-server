@@ -114,7 +114,7 @@ func (r *repoProvider) writeRouteFile(repos map[string]Repository) error {
 		contents = contents + routes + "\n"
 	}
 
-	return os.WriteFile(routefile, []byte(contents), 0o600)
+	return r.fileSystem.WriteFile(routefile, []byte(contents))
 }
 
 func (r *repoProvider) GetRepositories(ctx context.Context) (map[string]Repository, error) {
