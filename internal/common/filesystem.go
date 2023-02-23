@@ -14,6 +14,7 @@ type FileSystem interface {
 	GetLocalExecutable(name string) (string, error)
 
 	FileExists(filename string) (bool, error)
+	CreateDirectory(path string) error
 	WriteFile(filename string, content []byte) error
 	DeleteFile(filename string) (bool, error)
 	ReadFileLines(filename string) ([]string, error)
@@ -57,12 +58,20 @@ func (f *fileSystem) FileExists(filename string) (bool, error) {
 	}
 }
 
+func (f *fileSystem) CreateDirectory(path string) error {
+	err := os.MkdirAll(path, 0o755)
+	if err != nil {
+		return fmt.Errorf("could not create directory: %w", err)
+	}
+	return nil
+}
+
 func (f *fileSystem) WriteFile(filename string, content []byte) error {
 	// Get filename parent path
 	parentDir := path.Dir(filename)
-	err := os.MkdirAll(parentDir, 0o755)
+	err := f.CreateDirectory(parentDir)
 	if err != nil {
-		return fmt.Errorf("error creating parent directories: %w", err)
+		return err
 	}
 
 	err = os.WriteFile(filename, content, 0o600)
