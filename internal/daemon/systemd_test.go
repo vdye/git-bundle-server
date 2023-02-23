@@ -161,7 +161,7 @@ func TestSystemd_Create(t *testing.T) {
 					).Return(retVal).Once()
 				}
 				for _, retVal := range tt.systemctlDaemonReload {
-					testCommandExecutor.On("Run",
+					testCommandExecutor.On("RunQuiet",
 						ctx,
 						"systemctl",
 						[]string{"--user", "daemon-reload"},
@@ -193,7 +193,7 @@ func TestSystemd_Create(t *testing.T) {
 			var actualFileBytes []byte
 
 			// Mock responses for successful fresh write
-			testCommandExecutor.On("Run",
+			testCommandExecutor.On("RunQuiet",
 				ctx,
 				"systemctl",
 				[]string{"--user", "daemon-reload"},
@@ -257,7 +257,7 @@ func TestSystemd_Start(t *testing.T) {
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
-		testCommandExecutor.On("Run",
+		testCommandExecutor.On("RunQuiet",
 			ctx,
 			"systemctl",
 			[]string{"--user", "start", basicDaemonConfig.Label},
@@ -273,7 +273,7 @@ func TestSystemd_Start(t *testing.T) {
 
 	// Test #2: systemctl fails
 	t.Run("Returns error when systemctl fails", func(t *testing.T) {
-		testCommandExecutor.On("Run",
+		testCommandExecutor.On("RunQuiet",
 			ctx,
 			mock.AnythingOfType("string"),
 			mock.AnythingOfType("[]string"),
@@ -304,7 +304,7 @@ func TestSystemd_Stop(t *testing.T) {
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
-		testCommandExecutor.On("Run",
+		testCommandExecutor.On("RunQuiet",
 			ctx,
 			"systemctl",
 			[]string{"--user", "stop", basicDaemonConfig.Label},
@@ -320,7 +320,7 @@ func TestSystemd_Stop(t *testing.T) {
 
 	// Test #2: systemctl fails with uncaught error
 	t.Run("Returns error when systemctl fails", func(t *testing.T) {
-		testCommandExecutor.On("Run",
+		testCommandExecutor.On("RunQuiet",
 			ctx,
 			mock.AnythingOfType("string"),
 			mock.AnythingOfType("[]string"),
@@ -336,7 +336,7 @@ func TestSystemd_Stop(t *testing.T) {
 
 	// Test #3: service unit not found still succeeds
 	t.Run("Succeeds if service unit not installed", func(t *testing.T) {
-		testCommandExecutor.On("Run",
+		testCommandExecutor.On("RunQuiet",
 			ctx,
 			mock.AnythingOfType("string"),
 			mock.AnythingOfType("[]string"),
@@ -414,7 +414,7 @@ func TestSystemd_Remove(t *testing.T) {
 				).Return(tt.deleteFile.First, tt.deleteFile.Second).Once()
 			}
 			if tt.systemctlDaemonReload != nil {
-				testCommandExecutor.On("Run",
+				testCommandExecutor.On("RunQuiet",
 					ctx,
 					"systemctl",
 					[]string{"--user", "daemon-reload"},
