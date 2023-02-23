@@ -41,7 +41,7 @@ func (f *fileSystem) WriteFile(filename string, content []byte) error {
 		return fmt.Errorf("error creating parent directories: %w", err)
 	}
 
-	err = os.WriteFile(filename, content, 0o644)
+	err = os.WriteFile(filename, content, 0o600)
 	if err != nil {
 		return fmt.Errorf("could not write file: %w", err)
 	}
