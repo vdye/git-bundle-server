@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/git"
 	"github.com/github/git-bundle-server/internal/log"
@@ -65,17 +66,20 @@ type BundleProvider interface {
 }
 
 type bundleProvider struct {
-	logger    log.TraceLogger
-	gitHelper git.GitHelper
+	logger     log.TraceLogger
+	fileSystem common.FileSystem
+	gitHelper  git.GitHelper
 }
 
 func NewBundleProvider(
 	l log.TraceLogger,
+	fs common.FileSystem,
 	g git.GitHelper,
 ) BundleProvider {
 	return &bundleProvider{
-		logger:    l,
-		gitHelper: g,
+		logger:     l,
+		fileSystem: fs,
+		gitHelper:  g,
 	}
 }
 
