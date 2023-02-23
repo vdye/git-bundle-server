@@ -166,6 +166,11 @@ func (m *MockFileSystem) FileExists(filename string) (bool, error) {
 	return fnArgs.Bool(0), fnArgs.Error(1)
 }
 
+func (m *MockFileSystem) CreateDirectory(path string) error {
+	fnArgs := m.Called(path)
+	return fnArgs.Error(0)
+}
+
 func (m *MockFileSystem) WriteFile(filename string, content []byte) error {
 	fnArgs := m.Called(filename, content)
 	return fnArgs.Error(0)

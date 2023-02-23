@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/log"
@@ -60,9 +59,9 @@ func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Rep
 	repodir := reporoot(user) + route
 	web := webroot(user) + route
 
-	mkdirErr := os.MkdirAll(web, os.ModePerm)
-	if mkdirErr != nil {
-		return nil, fmt.Errorf("failed to create web directory: %w", mkdirErr)
+	err = r.fileSystem.CreateDirectory(web)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create web directory: %w", err)
 	}
 
 	repo = Repository{
