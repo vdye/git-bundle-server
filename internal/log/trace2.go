@@ -274,6 +274,9 @@ func (t *Trace2) ChildProcess(ctx context.Context, cmd *exec.Cmd) (func(error), 
 	return childReady, childExit
 }
 
+func (t *Trace2) Goroutine(ctx context.Context, routine func()) {
+}
+
 func (t *Trace2) LogCommand(ctx context.Context, commandName string) context.Context {
 	ctx, sharedFields := t.sharedFields(ctx)
 

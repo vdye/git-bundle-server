@@ -71,6 +71,12 @@ func (l *MockTraceLogger) ChildProcess(ctx context.Context, cmd *exec.Cmd) (func
 	return mockWithDefault(fnArgs, 0, func(error) {}), mockWithDefault(fnArgs, 1, func() {})
 }
 
+func (l *MockTraceLogger) Goroutine(ctx context.Context, routine func()) {
+	if methodIsMocked(&l.Mock) {
+		l.Called(ctx, routine)
+	}
+}
+
 func (l *MockTraceLogger) LogCommand(ctx context.Context, commandName string) context.Context {
 	fnArgs := mock.Arguments{}
 	if methodIsMocked(&l.Mock) {
