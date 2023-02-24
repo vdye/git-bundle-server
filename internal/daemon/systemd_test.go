@@ -11,6 +11,7 @@ import (
 
 	"github.com/github/git-bundle-server/internal/daemon"
 	. "github.com/github/git-bundle-server/internal/testhelpers"
+	. "github.com/github/git-bundle-server/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
