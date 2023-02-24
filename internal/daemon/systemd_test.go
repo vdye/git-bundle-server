@@ -162,6 +162,7 @@ func TestSystemd_Create(t *testing.T) {
 				}
 				for _, retVal := range tt.systemctlDaemonReload {
 					testCommandExecutor.On("Run",
+						ctx,
 						"systemctl",
 						[]string{"--user", "daemon-reload"},
 					).Return(retVal.First, retVal.Second).Once()
@@ -193,6 +194,7 @@ func TestSystemd_Create(t *testing.T) {
 
 			// Mock responses for successful fresh write
 			testCommandExecutor.On("Run",
+				ctx,
 				"systemctl",
 				[]string{"--user", "daemon-reload"},
 			).Return(0, nil).Once()
@@ -256,6 +258,7 @@ func TestSystemd_Start(t *testing.T) {
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
 		testCommandExecutor.On("Run",
+			ctx,
 			"systemctl",
 			[]string{"--user", "start", basicDaemonConfig.Label},
 		).Return(0, nil).Once()
@@ -271,6 +274,7 @@ func TestSystemd_Start(t *testing.T) {
 	// Test #2: systemctl fails
 	t.Run("Returns error when systemctl fails", func(t *testing.T) {
 		testCommandExecutor.On("Run",
+			ctx,
 			mock.AnythingOfType("string"),
 			mock.AnythingOfType("[]string"),
 		).Return(1, nil).Once()
@@ -301,6 +305,7 @@ func TestSystemd_Stop(t *testing.T) {
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
 		testCommandExecutor.On("Run",
+			ctx,
 			"systemctl",
 			[]string{"--user", "stop", basicDaemonConfig.Label},
 		).Return(0, nil).Once()
@@ -316,6 +321,7 @@ func TestSystemd_Stop(t *testing.T) {
 	// Test #2: systemctl fails with uncaught error
 	t.Run("Returns error when systemctl fails", func(t *testing.T) {
 		testCommandExecutor.On("Run",
+			ctx,
 			mock.AnythingOfType("string"),
 			mock.AnythingOfType("[]string"),
 		).Return(1, nil).Once()
@@ -331,6 +337,7 @@ func TestSystemd_Stop(t *testing.T) {
 	// Test #3: service unit not found still succeeds
 	t.Run("Succeeds if service unit not installed", func(t *testing.T) {
 		testCommandExecutor.On("Run",
+			ctx,
 			mock.AnythingOfType("string"),
 			mock.AnythingOfType("[]string"),
 		).Return(daemon.SystemdUnitNotInstalledErrorCode, nil).Once()
@@ -408,6 +415,7 @@ func TestSystemd_Remove(t *testing.T) {
 			}
 			if tt.systemctlDaemonReload != nil {
 				testCommandExecutor.On("Run",
+					ctx,
 					"systemctl",
 					[]string{"--user", "daemon-reload"},
 				).Return(tt.systemctlDaemonReload.First, tt.systemctlDaemonReload.Second).Once()
