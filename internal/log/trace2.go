@@ -112,13 +112,13 @@ func NewTrace2() traceLoggerInternal {
 type fieldList []zap.Field
 
 func (l fieldList) withTime() fieldList {
-	return append(l, zap.Float64("t_abs", time.Since(globalStart).Seconds()))
+	return append(l, zap.Duration("t_abs", time.Since(globalStart)))
 }
 
 func (l fieldList) withNesting(r trace2Region, includeTRel bool) fieldList {
 	l = append(l, zap.Int("nesting", r.level))
 	if includeTRel {
-		l = append(l, zap.Float64("t_rel", time.Since(r.tStart).Seconds()))
+		l = append(l, zap.Duration("t_rel", time.Since(r.tStart)))
 	}
 	return l
 }
@@ -260,7 +260,7 @@ func (t *Trace2) ChildProcess(ctx context.Context, cmd *exec.Cmd) (func(error), 
 			zap.Int32("child_id", childId),
 			zap.Int("pid", cmd.ProcessState.Pid()),
 			zap.Int("code", cmd.ProcessState.ExitCode()),
-			zap.Float64("t_rel", cmd.ProcessState.SystemTime().Seconds()),
+			zap.Duration("t_rel", cmd.ProcessState.SystemTime()),
 		)...)
 	}
 
