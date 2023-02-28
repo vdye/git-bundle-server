@@ -118,6 +118,9 @@ func (b *bundleProvider) CreateSingletonList(ctx context.Context, bundle Bundle)
 
 // Given a BundleList
 func (b *bundleProvider) WriteBundleList(ctx context.Context, list *BundleList, repo *core.Repository) error {
+	_, exitRegion := b.logger.Region(ctx, "bundles", "write_bundle_list")
+	defer exitRegion()
+
 	listFile := repo.WebDir + "/bundle-list"
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
@@ -179,6 +182,9 @@ func (b *bundleProvider) WriteBundleList(ctx context.Context, list *BundleList, 
 }
 
 func (b *bundleProvider) GetBundleList(ctx context.Context, repo *core.Repository) (*BundleList, error) {
+	_, exitRegion := b.logger.Region(ctx, "bundles", "get_bundle_list")
+	defer exitRegion()
+
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
 	reader, err := os.Open(jsonFile)
@@ -283,6 +289,9 @@ func (b *bundleProvider) getAllPrereqsForIncrementalBundle(list *BundleList) ([]
 }
 
 func (b *bundleProvider) CreateIncrementalBundle(ctx context.Context, repo *core.Repository, list *BundleList) (*Bundle, error) {
+	ctx, exitRegion := b.logger.Region(ctx, "bundles", "create_incremental_bundle")
+	defer exitRegion()
+
 	bundle := b.createDistinctBundle(repo, list)
 
 	lines, err := b.getAllPrereqsForIncrementalBundle(list)
@@ -303,6 +312,9 @@ func (b *bundleProvider) CreateIncrementalBundle(ctx context.Context, repo *core
 }
 
 func (b *bundleProvider) CollapseList(ctx context.Context, repo *core.Repository, list *BundleList) error {
+	ctx, exitRegion := b.logger.Region(ctx, "bundles", "collapse_list")
+	defer exitRegion()
+
 	maxBundles := 5
 
 	if len(list.Bundles) <= maxBundles {
