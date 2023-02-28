@@ -209,28 +209,21 @@ func (b *bundleProvider) GetBundleList(ctx context.Context, repo *core.Repositor
 }
 
 func (b *bundleProvider) getBundleHeader(bundle Bundle) (*BundleHeader, error) {
-	file, err := os.Open(bundle.Filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open bundle file: %w", err)
-	}
-
 	header := BundleHeader{
 		Version:       0,
 		Refs:          make(map[string]string),
 		PrereqCommits: make(map[string]string),
 	}
 
-	scanner := bufio.NewScanner(file)
+	lines, err := b.fileSystem.ReadFileLines(bundle.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read bundle file: %w", err)
+	}
 
-	for scanner.Scan() {
-		buffer := scanner.Bytes()
-
-		if len(buffer) == 0 ||
-			buffer[0] == '\n' {
+	for _, line := range lines {
+		if len(line) == 0 {
 			break
 		}
-
-		line := string(buffer)
 
 		if line[0] == '#' &&
 			strings.HasPrefix(line, "# v") &&
