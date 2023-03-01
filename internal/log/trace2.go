@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -22,6 +23,8 @@ const (
 	// TODO: handle GIT_TRACE2 by adding a separate output config (see zapcore
 	// "AdvancedConfiguration" example:
 	// https://pkg.go.dev/go.uber.org/zap#example-package-AdvancedConfiguration)
+	trace2Basic string = "GIT_TRACE2"
+	trace2Perf  string = "GIT_TRACE2_PERF"
 	trace2Event string = "GIT_TRACE2_EVENT"
 )
 
@@ -47,62 +50,71 @@ type Trace2 struct {
 	lastChildId int32
 }
 
-func getTrace2OutputPaths(envKey string) []string {
+func getTrace2WriteSyncer(envKey string) zapcore.WriteSyncer {
 	tr2Output := os.Getenv(envKey)
 
 	// Configure the output
 	if tr2, err := strconv.Atoi(tr2Output); err == nil {
 		// Handle numeric values
 		if tr2 == 1 {
-			return []string{"stderr"}
+			return zapcore.Lock(os.Stderr)
 		}
 		// TODO: handle file handles 2-9 and unix sockets
 	} else if tr2Output != "" {
 		// Assume we received a path
 		fileInfo, err := os.Stat(tr2Output)
+		var filename string
 		if err == nil && fileInfo.IsDir() {
 			// If the path is an existing directory, generate a filename
-			return []string{
-				filepath.Join(tr2Output, fmt.Sprintf("trace2_%s.txt", globalStart.Format(trace2TimeFormat))),
-			}
+			filename = fmt.Sprintf("trace2_%s.txt", globalStart.Format(trace2TimeFormat))
 		} else {
 			// Create leading directories
 			parentDir := path.Dir(tr2Output)
 			os.MkdirAll(parentDir, 0o755)
-			return []string{tr2Output}
+			filename = tr2Output
 		}
+
+		file, _, err := zap.Open(filename)
+		if err != nil {
+			panic(err)
+		}
+		return file
 	}
 
-	return []string{}
+	return zapcore.AddSync(io.Discard)
 }
 
-func createTrace2ZapLogger() *zap.Logger {
-	loggerConfig := zap.NewProductionConfig()
-
-	// Configure the output for GIT_TRACE2_EVENT
-	loggerConfig.OutputPaths = getTrace2OutputPaths(trace2Event)
-	loggerConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-
-	// Encode UTC time
-	loggerConfig.EncoderConfig.TimeKey = "time"
-	loggerConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoder(
+func createTrace2EventCore() zapcore.Core {
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       zapcore.OmitKey,
+		NameKey:        zapcore.OmitKey,
+		CallerKey:      zapcore.OmitKey,
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "event",
+		StacktraceKey:  zapcore.OmitKey,
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+	}
+	encoderConfig.EncodeTime = zapcore.TimeEncoder(
 		func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendString(t.UTC().Format(trace2TimeFormat))
 		},
 	)
+	encoder := zapcore.NewJSONEncoder(encoderConfig)
+	encoder = NewTr2PerfEncoder(encoderConfig)
 
-	// Ensure durations are logged in units of seconds
-	loggerConfig.EncoderConfig.EncodeDuration = zapcore.SecondsDurationEncoder
+	// Configure the output for GIT_TRACE2_EVENT
+	writeSyncer := getTrace2WriteSyncer(trace2Event)
 
-	// Re-purpose the "message" to represent the (always-present) "event" key
-	loggerConfig.EncoderConfig.MessageKey = "event"
+	return zapcore.NewCore(encoder, writeSyncer, zap.NewAtomicLevelAt(zap.DebugLevel))
+}
 
-	// Don't print the log level
-	loggerConfig.EncoderConfig.LevelKey = ""
-
-	// Disable caller info, we'll customize those fields manually
-	logger, _ := loggerConfig.Build(zap.WithCaller(false))
-	return logger
+func createTrace2ZapLogger() *zap.Logger {
+	core := zapcore.NewTee(
+		createTrace2EventCore(),
+	)
+	return zap.New(core, zap.ErrorOutput(zapcore.Lock(os.Stderr)), zap.WithCaller(false))
 }
 
 func NewTrace2() traceLoggerInternal {
@@ -208,6 +220,7 @@ func (t *Trace2) logExit(ctx context.Context, exitCode int) {
 
 func (t *Trace2) Region(ctx context.Context, category string, label string) (context.Context, func()) {
 	ctx, sharedFields := t.sharedFields(ctx)
+	sharedFields = sharedFields.withTime()
 
 	// Get the nesting level & increment
 	hasParentRegion, nesting := getContextValue[trace2Region](ctx, parentRegionId)
