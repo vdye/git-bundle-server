@@ -84,7 +84,7 @@ func createTrace2ZapLogger() *zap.Logger {
 	loggerConfig.EncoderConfig.TimeKey = "time"
 	loggerConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoder(
 		func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-			enc.AppendString(t.Format(trace2TimeFormat))
+			enc.AppendString(t.UTC().Format(trace2TimeFormat))
 		},
 	)
 
