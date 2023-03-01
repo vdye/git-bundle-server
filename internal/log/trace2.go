@@ -139,7 +139,7 @@ func createTrace2EventCore() zapcore.Core {
 		},
 	)
 	encoder := zapcore.NewJSONEncoder(encoderConfig)
-	encoder = NewTr2PerfEncoder(encoderConfig)
+	encoder = NewTr2PerfEncoder(false)
 
 	// Configure the output for GIT_TRACE2_EVENT
 	writeSyncer := getTrace2WriteSyncer(tr2Env_Event)
