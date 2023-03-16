@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
@@ -35,11 +36,20 @@ should be hosted at '<route>'.`
 }
 
 func (i *initCmd) Run(ctx context.Context, args []string) error {
-	parser := argparse.NewArgParser(i.logger, "git-bundle-server init <url> <route>")
+	parser := argparse.NewArgParser(i.logger, "git-bundle-server init <url> [<route>]")
 	url := parser.PositionalString("url", "the URL of a repository to clone", true)
-	// TODO: allow parsing <route> out of <url>
-	route := parser.PositionalString("route", "the route to host the specified repo", true)
+	route := parser.PositionalString("route", "the route to host the specified repo", false)
 	parser.Parse(ctx, args)
+
+	// Set route value, if needed
+	if *route == "" {
+		urlMatcher := regexp.MustCompile(`^.*(?:/|:)([\w\.-]+)/([\w\.-]+).git$`)
+		groups := urlMatcher.FindStringSubmatch(*url)
+		if groups == nil {
+			parser.Usage(ctx, "Cannot parse route from url '%s'; please specify an explicit route.", *url)
+		}
+		*route = groups[1] + "/" + groups[2]
+	}
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, i.container)
 	bundleProvider := utils.GetDependency[bundles.BundleProvider](ctx, i.container)
