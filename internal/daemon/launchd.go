@@ -6,6 +6,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/github/git-bundle-server/internal/common"
@@ -229,6 +231,80 @@ func (l *launchd) Create(ctx context.Context, config *DaemonConfig, force bool) 
 	}
 
 	return nil
+}
+
+func (l *launchd) parsePrintOutput(ctx context.Context, out string) DaemonStatus {
+	var stateMatch, exitMatch []string
+	stateRegex := regexp.MustCompile(`^\s*state = (.*)$`)
+	exitRegex := regexp.MustCompile(`^\s*last exit code = (\d+)$`)
+
+	outLines := strings.Split(out, "\n")
+	for _, line := range outLines {
+		if stateMatch == nil {
+			stateMatch = stateRegex.FindStringSubmatch(line)
+		}
+
+		if exitMatch == nil {
+			exitMatch = exitRegex.FindStringSubmatch(line)
+		}
+
+		if stateMatch != nil && exitMatch != nil {
+			break
+		}
+	}
+
+	if stateMatch == nil {
+		return StatusUnknown(l.logger.Errorf(ctx, "could not parse state; try running 'launchctl print ***'"))
+	}
+	state := stateMatch[1]
+	switch state {
+	case "running":
+		return StatusRunning()
+	case "not running":
+		if exitMatch == nil {
+			return StatusUnknown(l.logger.Errorf(ctx, "state is '%s', but could not determine exit code", state))
+		} else {
+			if exitMatch[1] == "0" {
+				return StatusStopped()
+			} else {
+				return StatusError(exitMatch[1])
+			}
+		}
+	default:
+		return StatusUnknown(l.logger.Errorf(ctx, "received unknown status '%s'", state))
+	}
+}
+
+func (l *launchd) Status(ctx context.Context, label string) DaemonStatus {
+	user, err := l.user.CurrentUser()
+	if err != nil {
+		return StatusUnknown(l.logger.Errorf(ctx, "could not get current user for launchd service: %w", err))
+	}
+
+	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
+	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, label)
+
+	// Get status from 'launchctl print'
+	stdout := &bytes.Buffer{}
+	exitCode, err := l.cmdExec.Run(ctx, "launchctl", []string{"print", serviceTarget}, cmd.Stdout(stdout))
+	if err != nil {
+		return StatusUnknown(l.logger.Error(ctx, err))
+	}
+
+	if exitCode == 0 {
+		// launchctl's manpage insists quite emphatically that 'launchctl print'
+		// is not an API, and its format should not be relied upon. But it's not
+		// like there *is* a stable API for this sort of thing, so we'll take
+		// our chances with 'launchctl print'. This *will* be fragile, though,
+		// so we should advise users to check 'launchctl print' themselves if
+		// something funky happens.
+		return l.parsePrintOutput(ctx, stdout.String())
+	} else if exitCode == LaunchdServiceNotFoundErrorCode {
+		return StatusNotLoaded()
+	} else {
+		return StatusUnknown(l.logger.Errorf(ctx, "could not determine state of service if service '%s' is bootstrapped: "+
+			"'launchctl print' exited with status '%d'", serviceTarget, exitCode))
+	}
 }
 
 func (l *launchd) Start(ctx context.Context, label string) error {

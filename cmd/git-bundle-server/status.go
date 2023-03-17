@@ -7,6 +7,7 @@ import (
 	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
+	"github.com/github/git-bundle-server/internal/daemon"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
@@ -32,9 +33,12 @@ Print status information about the bundle server and its configured routes.`
 }
 
 func (s *statusCmd) printServerInfo(ctx context.Context) error {
+	daemonProvider := utils.GetDependency[daemon.DaemonProvider](ctx, s.container)
+	status := daemonProvider.Status(ctx, "com.github.gitbundleserver")
+
 	fmt.Println("Server")
 	fmt.Println("------")
-	fmt.Printf("Web server daemon:	%s\n", "Stopped")
+	fmt.Printf("Web server daemon:	%s\n", status.Message())
 	fmt.Printf("Cron schedule:		%s\n", "Running")
 	fmt.Print("\n")
 

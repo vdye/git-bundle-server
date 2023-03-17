@@ -17,8 +17,36 @@ type DaemonConfig struct {
 	Arguments   []string
 }
 
+type DaemonStatus struct {
+	message string
+}
+
+func (d DaemonStatus) Message() string {
+	return d.message
+}
+
+func StatusUnknown(err error) DaemonStatus {
+	return DaemonStatus{
+		fmt.Sprintf("Could not determine status due to unknown error: %s", err.Error()),
+	}
+}
+
+func StatusError(exitCode string) DaemonStatus {
+	return DaemonStatus{
+		fmt.Sprintf("Failed (code: %s)", exitCode),
+	}
+}
+
+func StatusRunning() DaemonStatus { return DaemonStatus{"Running"} }
+
+func StatusStopped() DaemonStatus { return DaemonStatus{"Stopped"} }
+
+func StatusNotLoaded() DaemonStatus { return DaemonStatus{"Not loaded"} }
+
 type DaemonProvider interface {
 	Create(ctx context.Context, config *DaemonConfig, force bool) error
+
+	Status(ctx context.Context, label string) DaemonStatus
 
 	Start(ctx context.Context, label string) error
 

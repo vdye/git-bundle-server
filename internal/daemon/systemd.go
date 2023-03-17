@@ -103,6 +103,10 @@ func (s *systemd) Create(ctx context.Context, config *DaemonConfig, force bool) 
 	return nil
 }
 
+func (s *systemd) Status(ctx context.Context, label string) DaemonStatus {
+	return StatusUnknown(s.logger.Errorf(ctx, "Not yet implemented"))
+}
+
 func (s *systemd) Start(ctx context.Context, label string) error {
 	// TODO: warn user if already running
 	exitCode, err := s.cmdExec.RunQuiet(ctx, "systemctl", "--user", "start", label)
