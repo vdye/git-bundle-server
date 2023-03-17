@@ -16,6 +16,7 @@ func all(logger log.TraceLogger) []argparse.Subcommand {
 		NewDeleteCommand(logger, container),
 		NewInitCommand(logger, container),
 		NewStartCommand(logger, container),
+		NewStatusCommand(logger, container),
 		NewStopCommand(logger, container),
 		NewUpdateCommand(logger, container),
 		NewUpdateAllCommand(logger, container),
